@@ -35,48 +35,6 @@ from sys import getsizeof
 
 
 
-#convert time to depth, freq to temp given coefficient lists
-def btconvert(input,coefficients):
-    output = 0
-    for (i,c) in enumerate(coefficients):
-        output += c*input**i
-    return output
-    
-
-#function to run fft here
-def dofft(pcmdata,fs,flims):
-    
-    # apply taper- alpha=0.25
-    taper = tukey(len(pcmdata), alpha=0.25)
-    pcmdata = taper * pcmdata
-
-    # conducting fft, converting to real space
-    fftdata = np.abs(np.fft.fft(pcmdata))
-
-    #building corresponding frequency array
-    N = len(pcmdata)
-    T = N/fs
-    df = 1 / T
-    f = np.array([df * n if n < N / 2 else df * (n - N) for n in range(N)])
-
-    #constraining peak frequency options to frequencies in specified band
-    ind = np.all((np.greater_equal(f,flims[0]),np.less_equal(f,flims[1])),axis=0)
-    f = f[ind]
-    
-    #frequency of max signal within band (AXBT-transmitted frequency)
-    fp = f[np.argmax(fftdata[ind])] 
-    
-    #maximum signal strength in band
-    Sp = 10*np.log10(np.max(fftdata[ind]))
-
-    #ratio of maximum signal in band to max signal total (SNR)
-    Rp = np.max(fftdata[ind])/np.max(fftdata) 
-        
-    return fp, Sp, Rp
-
-
-    
-    
     
 # =============================================================================
 #  Audio Processor class
@@ -115,6 +73,61 @@ class AXBT_Processor:
         self.fp = []
         
         self.audiofile = audiofile
+        
+        
+        
+        
+        
+    def init_window(self,N):
+        
+        # apply taper- alpha=0.25
+        self.taper = tukey(N, alpha=0.25)
+        
+        self.N = N
+        
+        T = N/self.f_s
+        df = 1 / T
+        self.f = np.array([df * n if n < N / 2 else df * (n - N) for n in range(N)])#constraining peak frequency options to frequencies in specified band
+        self.good_f_ind = np.all((np.greater_equal(self.f, self.flims[0]), np.less_equal(self.f, self.flims[1])), axis=0)
+        
+        self.good_f = self.f[self.good_f_ind]
+        
+        
+        
+    
+    #convert time to depth, freq to temp given coefficient lists
+    def btconvert(self,input,coefficients):
+        output = 0
+        for (i,c) in enumerate(coefficients):
+            output += c*input**i
+        return output
+        
+        
+        
+    
+    #function to run fft here
+    def dofft(self,pcmdata):
+        pcmdata = self.taper * pcmdata
+    
+        # conducting fft, converting to real space
+        fftdata = np.abs(np.fft.fft(pcmdata))
+        fftdata_inrange = fftdata[self.good_f_ind]
+        
+        maxind = np.argmax(fftdata_inrange)
+        
+        #frequency of max signal within band (AXBT-transmitted frequency)
+        fp = self.good_f[maxind] 
+        
+        #maximum signal strength in band
+        Sp = 10*np.log10(fftdata_inrange[maxind])
+    
+        #ratio of maximum signal in band to max signal total (SNR)
+        Rp = fftdata_inrange[maxind]/np.max(fftdata) 
+            
+        return fp, Sp, Rp
+        
+        
+        
         
     def run(self):
         
@@ -168,6 +181,9 @@ class AXBT_Processor:
         # setting up thread while loop- terminates when user clicks "STOP" or audio file finishes processing
         i = -1
             
+        
+        N_cur = -1
+        
         #MAIN PROCESSOR LOOP
         while self.keepgoing:
             i += 1 
@@ -188,9 +204,14 @@ class AXBT_Processor:
             pmind = int(np.min([np.round(self.f_s*self.fftwindow/2),ctrind,self.lensignal-ctrind-1])) #uses minimum value so no overflow
             currentdata = self.audiostream[ctrind-pmind:ctrind+pmind]
                 
+            #setting up frequency array as reqd
+            N = len(currentdata)
+            if N_cur != N:
+                self.init_window(N)
+                N_cur = N
 
             #conducting FFT or skipping, depending on signal strength
-            fp,Sp,Rp = dofft(currentdata, self.f_s, self.flims)        
+            fp,Sp,Rp = self.dofft(currentdata)        
     
             #rounding before comparisons happen
             ctime = np.round(ctime, 1)
@@ -207,8 +228,8 @@ class AXBT_Processor:
                     
             #logic to determine whether or not point is valid
             if self.istriggered and Sp >= self.minsiglev and Rp >= self.minfftratio:
-                cdepth = btconvert(ctime - self.firstpointtime, self.zcoeff)
-                ctemp = btconvert(fp, self.tcoeff)
+                cdepth = self.btconvert(ctime - self.firstpointtime, self.zcoeff)
+                ctemp = self.btconvert(fp, self.tcoeff)
                 
                 #rounding
                 ctemp = np.round(ctemp, 2)
