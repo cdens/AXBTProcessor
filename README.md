@@ -34,8 +34,6 @@ This script requires python modules other than python base. Install them with `p
       <td align="center">-a</td>
       <td>Input channel for audio file (1 for left, 2 for right, -1 to sum across all channels)</td>
     </tr>  
-    
-    
     <tr>
       <td align="center">-w</td>
       <td>Window length for each FFT (sec)</td>
@@ -56,9 +54,6 @@ This script requires python modules other than python base. Install them with `p
       <td align="center">-b</td>
       <td>Minimum signal ratio to trigger profile collection</td>
     </tr>  
-    
-    
-    
     <tr>
       <td align="center">-t</td>
       <td>Frequency (Hz) to temperature (degC) conversion coefficients: [C<sub>0</sub>,C<sub>1</sub>,C<sub>2</sub>,C<sub>3</sub>] where T = C<sub>0</sub> + C<sub>1</sub>*f + C<sub>2</sub>*f<sup>2</sup> + C<sub>3</sub>*f<sup>3</sup></td>
@@ -71,8 +66,6 @@ This script requires python modules other than python base. Install them with `p
       <td align="center">-f</td>
       <td>Minimum and maximum frequencies for good AXBT data: [min_f,max_f]</td>
     </tr>  
-    
-    
     </tbody>
 </table>
 
