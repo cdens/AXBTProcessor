@@ -76,11 +76,6 @@ class AXBT_Processor:
         self.audiofile = audiofile
         
         
-        self.deadfreq = 8000
-        self.minsiglev = 1.3
-        self.triggersiglev = 1.6
-        
-        
         
         
         
@@ -127,14 +122,14 @@ class AXBT_Processor:
         fp = self.good_f[maxind] 
         
         #maximum signal strength in band
-        # Sp = 10*np.log10(fftdata_inrange[maxind])
+        Sp = 10*np.log10(fftdata_inrange[maxind])
     
         #ratio of maximum signal in band to max signal total (SNR)
         Rp = fftdata_inrange[maxind]/np.max(fftdata) 
         
-        #Signal level normalized by power at quiet frequency
-        pdead = fftdata[self.dead_freq_ind]
-        Sp = np.log10(fftdata_inrange[maxind]/pdead)
+        # #Signal level normalized by power at quiet frequency
+        # pdead = fftdata[self.dead_freq_ind]
+        # Sp = np.log10(fftdata_inrange[maxind]/pdead)
             
         return fp, Sp, Rp
         
